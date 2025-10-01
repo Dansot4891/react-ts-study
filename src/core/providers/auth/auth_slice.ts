@@ -3,20 +3,24 @@ import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/tool
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../../firebase.js";
 
-type User = { uid: string; email: string | null };
+/// User type
+type User = { email?: string };
+
+/// AuthState type
 type AuthState = {
-  user: User | null;
+  user: User;
   status: "completed" | "loading" | "error";
   error?: string;
 };
 
-const initialState: AuthState = { user: null, status: "completed" };
+const initialState: AuthState = { user: { email: undefined }, status: "completed" };
 
+/// loginThunk
 export const loginThunk = createAsyncThunk(
   "auth/login",
   async ({ email, pw }: { email: string; pw: string }) => {
     const { user } = await signInWithEmailAndPassword(auth, email, pw);
-    return { uid: user.uid, email: user.email } as User;
+    return { email: user.email } as User;
   }
 );
 
@@ -24,7 +28,7 @@ export const signupThunk = createAsyncThunk(
   "auth/signup",
   async ({ email, pw }: { email: string; pw: string }) => {
     const { user } = await createUserWithEmailAndPassword(auth, email, pw);
-    return { uid: user.uid, email: user.email } as User;
+    return { email: user.email } as User;
   }
 );
 
@@ -34,12 +38,12 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser(state, a: PayloadAction<User | null>) { state.user = a.payload; },
+    setUser(state, a: PayloadAction<User>) { state.user = a.payload; },
   },
   extraReducers: (b) => {
     const pend = (t: any) => b.addCase(t.pending,  s => { s.status = "loading"; s.error = undefined; });
     const ok   = (t: any) => b.addCase(t.fulfilled, (s, a: PayloadAction<User|void>) => {
-      s.status = "completed"; if (a.payload) s.user = a.payload as User; else s.user = null;
+      s.status = "completed"; if (a.payload) s.user = a.payload as User; else s.user = { email: undefined };
     });
     const fail = (t: any) => b.addCase(t.rejected,  (s, a) => { s.status = "error"; s.error = String(a.error?.message ?? "failed"); });
 
